@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Writing Practice Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --danger: #dc2626;
+            --bg: #f3f4f6;
+            --surface: #ffffff;
+            --text: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding-top: 50px;
+            margin: 0;
+            height: 100vh;
+        }
+
+        .container {
+            width: 800px;
+            max-width: 95%;
+            background: var(--surface);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+
+        /* Tabs Styling */
+        .tabs {
+            display: flex;
+            background-color: #e5e7eb;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #6b7280;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            background-color: #d1d5db;
+        }
+
+        .tab-btn.active {
+            background-color: var(--surface);
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        /* Content Area */
+        .content {
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            height: 100%;
+        }
+
+        .content.active {
+            display: flex;
+        }
+
+        /* Header (Timer + Controls) */
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .timer-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            font-family: monospace;
+            padding: 5px 15px;
+            background: #eff6ff;
+            border-radius: 5px;
+            color: var(--primary);
+        }
+
+        .timer-display.finished {
+            color: var(--danger);
+            background: #fef2f2;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-start {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-start:hover { background-color: #1d4ed8; }
+        .btn-start:disabled { background-color: #93c5fd; cursor: not-allowed; }
+
+        .btn-screenshot {
+            background-color: #10b981;
+            color: white;
+            display: none; /* Hidden by default */
+        }
+
+        .btn-screenshot:hover { background-color: #059669; }
+
+        /* Text Area */
+        textarea {
+            flex-grow: 1;
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: none;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            outline: 2px solid var(--primary);
+            border-color: transparent;
+        }
+
+        textarea:disabled {
+            background-color: #f9fafb;
+            color: #6b7280;
+            border-color: #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('task1')">Writing Task 1</button>
+            <button class="tab-btn" onclick="openTab('task2')">Writing Task 2</button>
+        </div>
+
+        <div id="task1" class="content active">
+            <div class="task-header">
+                <div>
+                    <span id="timer1" class="timer-display">20:00</span>
+                </div>
+                <div>
+                    <button id="start1" class="btn btn-start" onclick="startTimer(1, 20)">Start Timer</button>
+                    <button id="shot1" class="btn btn-screenshot" onclick="takeScreenshot('area1')">Screenshot</button>
+                </div>
+            </div>
+            <textarea id="area1" placeholder="Press 'Start Timer' to begin writing..."></textarea>
+        </div>
+
+        <div id="task2" class="content">
+            <div class="task-header">
+                <div>
+                    <span id="timer2" class="timer-display">40:00</span>
+                </div>
+                <div>
+                    <button id="start2" class="btn btn-start" onclick="startTimer(2, 40)">Start Timer</button>
+                    <button id="shot2" class="btn btn-screenshot" onclick="takeScreenshot('area2')">Screenshot</button>
+                </div>
+            </div>
+            <textarea id="area2" placeholder="Press 'Start Timer' to begin writing..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        // Store interval IDs so we can stop them individually
+        const intervals = {};
+
+        // Switch Tabs Function
+        function openTab(taskName) {
+            // Hide all contents
+            document.querySelectorAll('.content').forEach(div => div.classList.remove('active'));
+            // Remove active class from buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected content and activate button
+            document.getElementById(taskName).classList.add('active');
+            
+            // Highlight the correct tab button
+            const buttons = document.querySelectorAll('.tab-btn');
+            if(taskName === 'task1') buttons[0].classList.add('active');
+            else buttons[1].classList.add('active');
+        }
+
+        // Timer Logic
+        function startTimer(id, minutes) {
+            const startBtn = document.getElementById(`start${id}`);
+            const textArea = document.getElementById(`area${id}`);
+            const timerDisplay = document.getElementById(`timer${id}`);
+            
+            // Disable start button so they can't click it twice
+            startBtn.disabled = true;
+            startBtn.textContent = "Writing...";
+            
+            // Ensure text area is enabled
+            textArea.disabled = false;
+            textArea.focus();
+
+            let time = minutes * 60; // Convert to seconds
+
+            intervals[id] = setInterval(() => {
+                const min = Math.floor(time / 60);
+                const sec = time % 60;
+
+                // Update display with leading zeros
+                timerDisplay.textContent = `${min < 10 ? '0' : ''}${min}:${sec < 10 ? '0' : ''}${sec}`;
+
+                if (time > 0) {
+                    time--;
+                } else {
+                    // Time is up!
+                    finishTask(id);
+                }
+            }, 1000);
+        }
+
+        // Function called when timer hits 0
+        function finishTask(id) {
+            clearInterval(intervals[id]);
+            
+            const textArea = document.getElementById(`area${id}`);
+            const timerDisplay = document.getElementById(`timer${id}`);
+            const shotBtn = document.getElementById(`shot${id}`);
+            const startBtn = document.getElementById(`start${id}`);
+
+            // Visual feedback
+            timerDisplay.classList.add('finished');
+            timerDisplay.textContent = "00:00";
+            
+            // Disable input
+            textArea.disabled = true;
+            
+            // Update buttons
+            startBtn.style.display = 'none'; // Hide start button
+            shotBtn.style.display = 'inline-block'; // Show screenshot button
+            
+            alert(`Time is up for Task ${id}!`);
+        }
+
+        // Screenshot Logic
+        function takeScreenshot(areaId) {
+            // We select the textarea itself
+            const element = document.getElementById(areaId);
+            
+            // html2canvas works best if we create a temporary div to render the text
+            // because textarea scrollbars can look messy in screenshots.
+            // However, to keep it simple and authentic to what you wrote:
+            
+            html2canvas(element).then(canvas => {
+                // Create a dummy link to trigger download
+                const link = document.createElement('a');
+                link.download = `writing_task_result.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
